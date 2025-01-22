@@ -3,7 +3,21 @@ import os
 import argparse
 import re
 from datetime import timedelta
-import sys
+
+def imwrite(filename, img, params=None):
+    try:
+        ext = os.path.splitext(filename)[1]
+        result, n = cv2.imencode(ext, img, params)
+        
+        if result:
+            with open(filename, mode='w+b') as f:
+                n.tofile(f)
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(e)
+        return False
 
 def calculate_frame_number(cap, frame_option):
     """ フレーム番号を計算 """
@@ -129,9 +143,12 @@ def extract_frame(video_path, frame_option, output_format, output_dir, name_patt
         # 出力パスの生成
         output_path = os.path.join(output_dir, f"{filename}.{output_format}")
         output_path = avoid_overwrite(output_path)
-        
-        cv2.imwrite(output_path, frame)
+
+        imwrite(output_path, frame)
         print(f"保存成功: {output_path}")
+
+        if not imwrite(output_path, frame):
+            print(f"保存失敗: {output_path}")
 
     except Exception as e:
         print(f"エラーが発生しました: {str(e)}")
