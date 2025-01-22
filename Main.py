@@ -94,33 +94,48 @@ def extract_frame(video_path, frame_option, output_format, output_dir, name_patt
         print(f"エラー: {video_path} を開けません")
         return
 
-    frame_number = calculate_frame_number(cap, frame_option)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-    success, frame = cap.read()
-    cap.release()
-
-    if not success:
-        print(f"警告: {video_path} からフレーム {frame_number} を読み込めません")
-        return
-
-    original_name = os.path.splitext(os.path.basename(video_path))[0]
-    time_position = f"{frame_number / cap.get(cv2.CAP_PROP_FPS):.2f}s"
-    
-    if keep_original_name:
-        filename = original_name
-    elif name_pattern:
-        filename = apply_regex_pattern(original_name, name_pattern, frame_number, time_position)
-    else:
-        filename = f"{original_name}_f{frame_number:06d}_{time_position}"
-
-    output_path = os.path.join(output_dir, f"{filename}.{output_format}")
-    output_path = avoid_overwrite(output_path)
-    
     try:
+        # フレーム番号計算
+        frame_number = calculate_frame_number(cap, frame_option)
+        
+        # FPSを取得（キャプチャオブジェクトが開いている状態で）
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if fps <= 0:
+            print(f"警告: FPS情報が不正なため、デフォルトの30 FPSを使用します")
+            fps = 30.0
+
+        # フレーム位置を設定
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+        success, frame = cap.read()
+
+        if not success:
+            print(f"警告: {video_path} からフレーム {frame_number} を読み込めません")
+            return
+
+        # 時間位置の計算
+        time_position = f"{frame_number / fps:.2f}s"
+
+        # ファイル名生成
+        original_name = os.path.splitext(os.path.basename(video_path))[0]
+        
+        if keep_original_name:
+            filename = original_name
+        elif name_pattern:
+            filename = apply_regex_pattern(original_name, name_pattern, frame_number, time_position)
+        else:
+            filename = f"{original_name}_f{frame_number:06d}_{time_position}"
+
+        # 出力パスの生成
+        output_path = os.path.join(output_dir, f"{filename}.{output_format}")
+        output_path = avoid_overwrite(output_path)
+        
         cv2.imwrite(output_path, frame)
         print(f"保存成功: {output_path}")
+
     except Exception as e:
-        print(f"エラー: 保存失敗 - {str(e)}")
+        print(f"エラーが発生しました: {str(e)}")
+    finally:
+        cap.release()
 
 def avoid_overwrite(path):
     """ ファイル重複を防ぐ """
