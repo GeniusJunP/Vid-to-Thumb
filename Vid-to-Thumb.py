@@ -3,6 +3,7 @@ import os
 import argparse
 import re
 from datetime import timedelta
+import sys
 
 def calculate_frame_number(cap, frame_option):
     """ フレーム番号を計算 """
